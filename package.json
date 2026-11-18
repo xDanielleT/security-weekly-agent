@@ -1,0 +1,14 @@
+{
+  "name": "security-weekly-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AI agent that publishes a weekly plain-language cybersecurity brief to my portfolio",
+  "scripts": {
+    "brief": "node agent/build-brief.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
+    "fast-xml-parser": "^5.12.1"
+  }
+}
