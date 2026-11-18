@@ -1,0 +1,54 @@
+name: Security Weekly
+
+on:
+  schedule:
+    - cron: "0 13 * * 1"   # Mondays 8am Central (scheduled runs only happen on main)
+  workflow_dispatch:        # manual "Run workflow" button
+
+permissions:
+  contents: read
+
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    env:
+      IS_MAIN: ${{ github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+
+      # main only: grab the portfolio so the brief can be saved into it
+      - name: Check out portfolio
+        if: env.IS_MAIN == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: XDanielleT/my-portfolio
+          token: ${{ secrets.PORTFOLIO_TOKEN }}
+          path: portfolio
+
+      - name: Build brief
+        run: npm run brief
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BRIEFS_DIR: ${{ env.IS_MAIN == 'true' && 'portfolio/public/briefs' || 'out' }}
+
+      # dev (or any other branch): save a downloadable preview instead of publishing
+      - name: Save preview
+        if: env.IS_MAIN != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: brief-preview
+          path: out/
+
+      - name: Publish to portfolio
+        if: env.IS_MAIN == 'true'
+        working-directory: portfolio
+        run: |
+          git config user.name "security-weekly-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/briefs/
+          git diff --cached --quiet || git commit -m "Security Weekly: $(date -u +%F)"
+          git push
